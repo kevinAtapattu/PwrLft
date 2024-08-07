@@ -15,13 +15,16 @@ struct MainTabView: View {
                 .tabItem {
                     Label("Rest", systemImage: "timer")
                 }
-            Text("Other Tab")
-                .tabItem{
-                    Label("Other", systemImage: "ellipsis")
+            WorkoutLogView()
+                .tabItem {
+                    Label("Log Workout", systemImage: "chart.bar.xaxis.ascending")
+                }
+            OneRMCalculatorView()
+                .tabItem {
+                    Label("One-RM", systemImage: "figure.strengthtraining.traditional")
                 }
         }
     }
-        
 }
 
 struct MainTabView_Previews: PreviewProvider {
