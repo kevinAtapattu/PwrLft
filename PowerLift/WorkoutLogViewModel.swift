@@ -7,6 +7,7 @@
 
 import Foundation
 import SwiftUI
+import Supabase
 
 class WorkoutLogViewModel: ObservableObject {
     @Published var workouts: [Workout] = []
@@ -75,18 +76,26 @@ struct WorkoutLogView: View {
                         HStack {
                             TextField("Exercise", text: $viewModel.newExerciseName)
                             TextField("Reps", text: $viewModel.newExerciseReps)
+                                #if os(iOS)
                                 .keyboardType(.numberPad)
+                                #endif
                             TextField("Sets", text: $viewModel.newExerciseSets)
+                                #if os(iOS)
                                 .keyboardType(.numberPad)
+                                #endif
                             TextField("Weight", text: $viewModel.newExerciseWeight)
+                                #if os(iOS)
                                 .keyboardType(.decimalPad)
+                                #endif
                             Button(action: viewModel.addExercise) {
                                 Text("Add")
                             }
                         }
                     }
                 }
+                #if os(iOS)
                 .listStyle(GroupedListStyle())
+                #endif
                 .navigationTitle("Workout Log")
 
                 Button(action: viewModel.completeWorkout) {

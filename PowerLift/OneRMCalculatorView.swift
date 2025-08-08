@@ -21,15 +21,21 @@ struct OneRMCalculatorView: View {
                 .font(.largeTitle)
                 .padding()
             TextField("Enter weight lifted", text: $weight)
+                #if os(iOS)
                 .keyboardType(.decimalPad)
+                #endif
                 .padding()
                 .textFieldStyle(RoundedBorderTextFieldStyle())
             TextField("Enter number of reps", text: $reps)
+                #if os(iOS)
                 .keyboardType(.decimalPad)
+                #endif
                 .padding()
                 .textFieldStyle(RoundedBorderTextFieldStyle())
             TextField("Enter your bodyweight", text: $bodyweight)
+                #if os(iOS)
                 .keyboardType(.decimalPad)
+                #endif
                 .padding()
                 .textFieldStyle(RoundedBorderTextFieldStyle())
             Button(action: calculateOneRM) {
