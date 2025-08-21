@@ -11,6 +11,8 @@ struct PowerLiftApp: App {
     var body: some Scene {
         WindowGroup {
             MainTabView(client: client)
+                .preferredColorScheme(.dark)
+                .accentColor(.blue)
         }
     }
 }

@@ -5,66 +5,160 @@ import Supabase
 struct LoginSignupView: View {
     @State private var email: String = ""
     @State private var password: String = ""
-    @State private var username: String = "" // Optional username
-    let client: SupabaseClient // Inject the client as a regular object
+    @State private var username: String = ""
+    @State private var isSignUp: Bool = false
+    @State private var isLoading: Bool = false
+    @State private var showAlert: Bool = false
+    @State private var alertMessage: String = ""
+    let client: SupabaseClient
 
     var body: some View {
-        VStack {
-            TextField("Email", text: $email)
-                .textFieldStyle(RoundedBorderTextFieldStyle())
-                .padding()
-
-            SecureField("Password", text: $password)
-                .textFieldStyle(RoundedBorderTextFieldStyle())
-                .padding()
-
-            TextField("Username (optional)", text: $username)
-                .textFieldStyle(RoundedBorderTextFieldStyle())
-                .padding()
-
-            Button("Sign Up") {
-                Task {
-                    await signUpUser()
+        ZStack {
+            // Background gradient
+            LinearGradient(
+                colors: [Color.black, Color(red: 0.1, green: 0.1, blue: 0.2)],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+            .ignoresSafeArea()
+            
+            ScrollView {
+                VStack(spacing: 32) {
+                    // Header
+                    VStack(spacing: 16) {
+                        // App Logo/Icon
+                        ZStack {
+                            Circle()
+                                .fill(Color.blue.opacity(0.3))
+                                .frame(width: 80, height: 80)
+                            
+                            Image(systemName: "dumbbell.fill")
+                                .font(.system(size: 32))
+                                .foregroundColor(.blue)
+                        }
+                        
+                        VStack(spacing: 8) {
+                            Text("iLift")
+                                .font(.system(size: 32, weight: .bold, design: .rounded))
+                                .foregroundColor(.white)
+                            
+                            Text(isSignUp ? "Create your account" : "Welcome back")
+                                .font(.system(size: 16, weight: .medium))
+                                .foregroundColor(.gray)
+                        }
+                    }
+                    .padding(.top, 40)
+                    
+                    // Form Fields
+                    VStack(spacing: 20) {
+                        if isSignUp {
+                            ModernInputField(
+                                title: "Username",
+                                placeholder: "Enter your username",
+                                text: $username,
+                                icon: "person.fill"
+                            )
+                        }
+                        
+                        ModernInputField(
+                            title: "Email",
+                            placeholder: "Enter your email",
+                            text: $email,
+                            icon: "envelope.fill"
+                        )
+                        
+                        ModernInputField(
+                            title: "Password",
+                            placeholder: "Enter your password",
+                            text: $password,
+                            icon: "lock.fill",
+                            isSecure: true
+                        )
+                    }
+                    .padding(.horizontal, 20)
+                    
+                    // Action Button
+                    Button(action: {
+                        Task {
+                            await performAuth()
+                        }
+                    }) {
+                        HStack(spacing: 8) {
+                            if isLoading {
+                                ProgressView()
+                                    .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                                    .scaleEffect(0.8)
+                            } else {
+                                Image(systemName: isSignUp ? "person.badge.plus" : "arrow.right.circle.fill")
+                            }
+                            
+                            Text(isSignUp ? "Create Account" : "Sign In")
+                        }
+                        .font(.system(size: 18, weight: .semibold))
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 16)
+                        .background(
+                            RoundedRectangle(cornerRadius: 12)
+                                .fill(Color.blue)
+                        )
+                    }
+                    .disabled(email.isEmpty || password.isEmpty || (isSignUp && username.isEmpty) || isLoading)
+                    .padding(.horizontal, 20)
+                    
+                    // Toggle Mode
+                    Button(action: { isSignUp.toggle() }) {
+                        HStack(spacing: 4) {
+                            Text(isSignUp ? "Already have an account?" : "Don't have an account?")
+                                .font(.system(size: 14))
+                                .foregroundColor(.gray)
+                            
+                            Text(isSignUp ? "Sign In" : "Sign Up")
+                                .font(.system(size: 14, weight: .semibold))
+                                .foregroundColor(.blue)
+                        }
+                    }
+                    
+                    Spacer(minLength: 30)
                 }
             }
-            .padding()
+        }
+        .alert("Authentication", isPresented: $showAlert) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(alertMessage)
+        }
+    }
 
-            Button("Sign In") {
-                Task {
-                    await signInUser()
-                }
+    private func performAuth() async {
+        isLoading = true
+        
+        do {
+            if isSignUp {
+                let session = try await client.auth.signUp(email: email, password: password)
+                print("User signed up: \(session)")
+                
+                let userId = session.user.id.uuidString
+                await saveUserToDatabase(userId: userId)
+                
+                alertMessage = "Account created successfully! Please check your email to verify your account."
+            } else {
+                let session = try await client.auth.signIn(email: email, password: password)
+                print("User signed in: \(session)")
+                
+                let userId = session.user.id.uuidString
+                await fetchUserData(userId: userId)
+                
+                alertMessage = "Welcome back!"
             }
-            .padding()
-        }
-        .padding()
-    }
-
-    private func signUpUser() async {
-        do {
-            let session = try await client.auth.signUp(email: email, password: password)
-            print("User signed up: \(session)")
             
-            // Convert UUID to String
-            let userId = session.user.id.uuidString
-            await saveUserToDatabase(userId: userId)
-            
+            showAlert = true
         } catch {
-            print("Sign up failed: \(error.localizedDescription)")
+            alertMessage = "Authentication failed: \(error.localizedDescription)"
+            showAlert = true
         }
-    }
-
-    private func signInUser() async {
-        do {
-            let session = try await client.auth.signIn(email: email, password: password)
-            print("User signed in: \(session)")
-            
-            // Convert UUID to String
-            let userId = session.user.id.uuidString
-            await fetchUserData(userId: userId)
-            
-        } catch {
-            print("Sign in failed: \(error.localizedDescription)")
-        }
+        
+        isLoading = false
     }
 
     // Define a struct that conforms to Encodable
@@ -79,7 +173,6 @@ struct LoginSignupView: View {
         let dateFormatter = ISO8601DateFormatter()
         let formattedDate = dateFormatter.string(from: Date())
 
-        // Create an instance of the User struct
         let newUser = User(id: userId, email: email, username: username.isEmpty ? nil : username, created_at: formattedDate)
 
         do {
@@ -95,7 +188,6 @@ struct LoginSignupView: View {
             let response = try await client.from("users").select().eq("id", value: userId).execute()
             if let userData = response.data.first {
                 print("User data fetched: \(userData)")
-                // Handle user data (e.g., store in app state or display in UI)
             }
         } catch {
             print("Failed to fetch user data: \(error.localizedDescription)")

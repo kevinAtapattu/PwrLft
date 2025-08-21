@@ -9,10 +9,8 @@ import Foundation
 import UserNotifications
 import Combine
 
-
 extension ContentView {
     final class ViewModel: ObservableObject {
-        // Timer state
         @Published var isActive = false
         @Published var isPaused = false
         @Published var showingAlert = false
@@ -23,10 +21,10 @@ extension ContentView {
         @Published var selectedHours: Int = 0 { didSet { updatePreviewTime() } }
         @Published var selectedMinutes: Int = 5 { didSet { updatePreviewTime() } }
         @Published var selectedSeconds: Int = 0 { didSet { updatePreviewTime() } }
-        
+
         // Backing time values
         private var totalDurationSeconds: Int = 300
-        private var remainingSeconds: Int = 300
+        private var remainingSeconds: Double = 300.0 // Changed to Double for smooth progress
         private var endDate = Date()
         private var notificationScheduled = false
         
@@ -46,7 +44,7 @@ extension ContentView {
             isPaused = true
             // Capture remaining seconds at pause
             let now = Date()
-            remainingSeconds = max(0, Int(endDate.timeIntervalSince(now).rounded()))
+            remainingSeconds = max(0, endDate.timeIntervalSince(now))
             cancelScheduledNotification()
         }
 
@@ -71,7 +69,7 @@ extension ContentView {
             guard !isPaused else { return }
             
             let now = Date()
-            let difference = endDate.timeIntervalSince1970 - now.timeIntervalSince1970
+            let difference = endDate.timeIntervalSince(now)
             
             if difference <= 0 {
                 isActive = false
@@ -85,11 +83,9 @@ extension ContentView {
                 return
             }
             
-            let remaining = max(0, Int(difference.rounded()))
-            remainingSeconds = remaining
-            time = formatTime(from: remaining)
-            progress = 1.0 - (Double(remaining) / Double(max(totalDurationSeconds, 1)))
-            
+            remainingSeconds = max(0, difference)
+            time = formatTime(from: Int(remainingSeconds.rounded()))
+            progress = 1.0 - (remainingSeconds / Double(max(totalDurationSeconds, 1)))
         }
         
         private func formatTime(from totalSeconds: Int) -> String {
@@ -107,7 +103,7 @@ extension ContentView {
 
         private func applySelectionAsDuration() {
             totalDurationSeconds = selectedHours * 3600 + selectedMinutes * 60 + selectedSeconds
-            remainingSeconds = totalDurationSeconds
+            remainingSeconds = Double(totalDurationSeconds)
         }
 
         private func updatePreviewTime() {
